@@ -1,0 +1,28 @@
+CompileFlags: # Tweak compilation settings for Aroma plugin environment.
+  Add:
+    - "-std=c++20"
+    - "-Wall"
+    - "-Wextra" # Strict checking.
+    - "-Wconversion"
+    # Make sure we still get errors despite some being suppressed.
+    # This may have to be adjusted to be higher.
+    - "-ferror-limit=150"
+    # NOTE: Below two will definitely depend on your specific environment.
+    - "--include-directory=/opt/devkitpro/devkitPPC/powerpc-eabi/include/c++/15.1.0"
+    - "--include-directory=/opt/devkitpro/devkitPPC/powerpc-eabi/include/c++/15.1.0/powerpc-eabi/"
+    - "--include-directory=/opt/devkitpro/devkitPPC/powerpc-eabi/include"
+    # Above three may be able to be skipped.
+    - "--include-directory=/opt/devkitpro/wut/include"
+    - "--include-directory=/opt/devkitpro/wut/usr/include"
+    - "--include-directory=/opt/devkitpro/wums/include"
+    - "--include-directory=/opt/devkitpro/wups/include"
+
+    - "-Wno-int-to-pointer-cast"
+    - "-Wno-deprecated-builtins"
+Diagnostics:
+  Suppress:
+    # Static assertions for structs fail due to wrong endianness.
+    - "static_assert_requirement_failed"
+    # Ignore errors related to executable file format.
+    - "attribute_section_invalid_for_target"
+    - "bad_reinterpret_cast_small_int" # Ignore differences with pointer sizes.

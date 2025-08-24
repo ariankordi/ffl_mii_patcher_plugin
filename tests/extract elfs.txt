@@ -1,0 +1,20 @@
+# FFL 1.1.7, 2M
+rpl2elf ~/don\ t\ tell\ nintendo/nustool/000500101004a000/0/code/ffl_app.rpx /dev/shm/ffl_app_jpn_v0.elf
+# FFL 1.3.15
+rpl2elf ~/.local/share/Cemu/mlc01/sys/title/00050010/1004a100/code/ffl_app.rpx /dev/shm/ffl_app.elf
+# FFL 1.5.5, 4M, linear gamma, sead+gsys+agl
+rpl2elf ~/.local/share/Cemu/mlc01/sys/title/00050010/10040100/code/men.rpx /dev/shm/men.elf
+# FFL 1.4.1, 5M
+rpl2elf ~/.local/share/Cemu/mlc01/sys/title/00050010/1005a100/code/doors.rpx /dev/shm/doors.elf
+
+# FFL 1.3.10, 17M
+rpl2elf ~/don\ t\ tell\ nintendo/games/ffl-sym-upto-1-3-17/0005000010128F00_Game/code/sonic2013.rpx /dev/shm/sonic2013.elf
+# FFL 1.5.3, 0.6M, DEBUG
+rpl2elf ~/don\ t\ tell\ nintendo/games/ffl-sym-1-4-1-to-1-5-6/000500001015D300_Game/code/MiiPlugin.rpl /dev/shm/MiiPlugin.elf
+# FFL 1.5.7, 7.6M
+rpl2elf ~/don\ t\ tell\ nintendo/games/ffl-sym-1-4-1-to-1-5-6/0005000010116400_Game/code/niconico.rpx /dev/shm/niconico-ffl157.elf
+# FFL 1.5.5, 0.14M
+rpl2elf ~/don\ t\ tell\ nintendo/nwf\ playground/v4-TippingStars-0005000010149300_Game/code/jsextension_ext-mii-private.rpl /dev/shm/jsextension_ext-mii-private.elf
+
+# No FFL
+rpl2elf ~/don\ t\ tell\ nintendo/nwf\ playground/v18-00050000101CFF00-jsextension_ext-eval.rpl /dev/shm/jsextension_ext-eval.elf

@@ -1,0 +1,8 @@
+# Prototypes
+main-a*.cpp
+
+tests/SignatureScannerTest
+tests/*.dSYM*
+build
+*.elf
+*.wps
