@@ -1,130 +1,115 @@
-#include "patches.h"
+#include <function_patcher/function_patching.h>
+#include <function_patcher/fpatching_defines.h>
+#include <coreinit/dynload.h>
+#include <notifications/notifications.h>
+#include <cstring>
 
-#ifdef __WIIU__
-#include "notifications/notifications.h"
+#if DEBUG
+#include <chrono> // Benchmarking
 #include "utils/logger.h"
-    #ifdef DEBUG
-    #include <cstdio>
-    #endif
 #endif
 
-/// Vec4f color type.
-struct alignas(16) FFLColor {
-    float r, g, b, a;
-};
+#include "utils/SignatureScanner.h"
+#include "patches.h"
+#include "ffl_patches.h" // cSignatureSetFFL
 
-/// Red constant color for testing.
-static FFLColor cColorRed{ 1.0f, 0.0f, 0.0f, 1.0f };
+static constexpr int MAX_PATCHED_HANDLES = 15;
+/// A map of every patched function handle added.
+static PatchedFunctionHandle gHandles[MAX_PATCHED_HANDLES];
+static int gHandleIndex; ///< Current index for gHandles array.
 
-extern "C" {
+static void applyPatchFromMatch(const SignatureMatch& match) {
+    assert(match.pDef != nullptr);
+    const SignatureDefinition& def = *match.pDef;
+    assert(def.pHookInfo != nullptr);
 
-// real_ pointer will be written by FunctionPatcher.
-// DECL_FUNCTION(void*, FFLiGetHairColor, int /*colorIndex*/) {
-void* my_FFLiGetHairColor(int /*colorIndex*/) {
-    // Example: Ignore colorIndex and force RED to see if it's hooked.
-    // Return address of our static Vec4 in plugin .data.
-    return reinterpret_cast<void*>(&cColorRed);
-    // return real_FFLiGetHairColor(colorIndex);
-}
+    // Interpret hookInfo as a pointer to function_replacement_data_t.
+    function_replacement_data_t* tmpl =
+        reinterpret_cast<function_replacement_data_t*>(def.pHookInfo);
+    function_replacement_data_t repl = *tmpl;
 
-int my_FFLiVerifyCharInfoWithReason(void* info, int nameCheck) {
-    int result = real_FFLiVerifyCharInfoWithReason(info, nameCheck);
-#ifdef __WIIU__
-    if (result != 0 &&
-        result != 21) { // this is encountered when inputting null
-                        // which a lot of games like to do for some reason
-        char log[96];
-        snprintf(log, sizeof(log), "charinfo verify fail: %d", result);
-        DEBUG_FUNCTION_LINE_INFO("%s", log);
-        NotificationModule_AddErrorNotification(log);
-    }
-#endif
-    // return 0; // FFLI_VERIFY_REASON_OK
-    return result;
-}
+    // Set pointers in either the original or copy.
+    repl.virtualAddr = static_cast<uint32_t>(match.effectiveAddress);
+    // There's a chance only one of these have to be set...
+    repl.physicalAddr = static_cast<uint32_t>(match.physicalAddress);
 
-/**
- * @brief Calculates the maximum Base64 encoded length for a given number of bytes.
- * @details Base64 expands every 3 bytes into 4 characters, plus padding.
- * Add 1 extra for null terminator.
- * @param n Number of input bytes.
- * @return Maximum required output size in bytes.
- */
-#define BASE64_ENCODED_SIZE(n) ((((n) + 2) / 3) * 4 + 1)
+    PatchedFunctionHandle handle;
+    if (auto st = FunctionPatcher_AddFunctionPatch(&repl, &handle, nullptr);
+             st == FUNCTION_PATCHER_RESULT_SUCCESS) {
+        // Set the new handle in the global array.
+        gHandles[gHandleIndex++] = handle;
 
-/**
- * @brief Encodes a binary buffer into Base64 text.
- * @param input Pointer to raw input bytes.
- * @param len Number of bytes in input.
- * @param output Pointer to destination buffer (must be at least BASE64_ENCODED_SIZE(len)).
- */
-/*
-static void base64_encode(const uint8_t* input, size_t len, char* output) {
-    static const char cBase64Alphabet[] =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz"
-        "0123456789+/";
-
-    size_t outIndex = 0;
-    size_t i = 0;
-
-    while (i + 2 < len) {
-        // Take 3 bytes and split into 4 groups of 6 bits.
-        int32_t triple = (input[i] << 16) | (input[i + 1] << 8) | input[i + 2];
-        output[outIndex++] = cBase64Alphabet[(triple >> 18) & 0x3F];
-        output[outIndex++] = cBase64Alphabet[(triple >> 12) & 0x3F];
-        output[outIndex++] = cBase64Alphabet[(triple >> 6)  & 0x3F];
-        output[outIndex++] = cBase64Alphabet[triple & 0x3F];
-        i += 3;
-    }
-
-    // Handle remaining 1 or 2 bytes with padding.
-    if (i < len) {
-        int32_t triple = input[i] << 16;
-        if (i + 1 < len) {
-            triple |= input[i + 1] << 8;
-        }
-
-        output[outIndex++] = cBase64Alphabet[(triple >> 18) & 0x3F];
-        output[outIndex++] = cBase64Alphabet[(triple >> 12) & 0x3F];
-
-        if (i + 1 < len) {
-            output[outIndex++] = cBase64Alphabet[(triple >> 6) & 0x3F];
-            output[outIndex++] = '=';
-        } else {
-            output[outIndex++] = '=';
-            output[outIndex++] = '=';
-        }
-    }
-
-    // Null terminate.
-    output[outIndex] = '\0';
-}
-*/
-
-void my_FFLiMiiDataCore2CharInfo(void* dst, const void* src, char16_t* creatorName, int birthday) {
-#ifdef __WIIU__
-/*
-    if (creatorName !== nullptr) { // official
-        //uint8_t official[92];
-        //memcpy(official, src, 92);
-        //real_FFLiStoreData_SwapEndian(official);
-        char base64[BASE64_ENCODED_SIZE(92)];
-        base64_encode(static_cast<const uint8_t*>(base64), 92, base64);
-
-        char log[192];
-        snprintf(log, sizeof(log), "mii input: %s", base64);
-        DEBUG_FUNCTION_LINE_INFO("%s", log);
+#if DEBUG
+        char log[128];
+        // TODO: Potentially make a test to ensure these are never null.
+        assert(repl.ReplaceInRPL.function_name != nullptr);
+        assert(def.name != nullptr);
+        snprintf(log, sizeof(log), "Patched %s with my_%s at %08X",
+            def.name,
+            repl.ReplaceInRPL.function_name,
+            match.effectiveAddress);
+        DEBUG_FUNCTION_LINE("%s", log);
         NotificationModule_AddInfoNotification(log);
-    }
-*/
+    } else {
+        DEBUG_FUNCTION_LINE("Failed patch at %08X: %s",
+            match.effectiveAddress, FunctionPatcher_GetStatusStr(st));
 #endif
+    }
 
-    real_FFLiMiiDataCore2CharInfo(dst, src, creatorName, birthday);
 }
 
-//void my_FFLiStoreData_SwapEndian(void *self) {
-//    return real_FFLiStoreData_SwapEndian(self);
-//}
+/// Global SignatureScanner instance set up with FFL signature set.
+static const SignatureScanner gSignatureScanner(&cSignatureSetFFL);
 
-} // extern "C"
+bool scanSingleModuleForPatchFFL(OSDynLoad_NotifyData& module) {
+    uint32_t textAddr = module.textAddr;
+    uint32_t textSize = module.textSize;
+    if (!textAddr || !textSize) {
+        return false;
+    }
+
+    SignatureMatch matches[SIGSCAN_MAX_MATCHES];
+
+#if DEBUG
+    auto t0 = std::chrono::high_resolution_clock::now();
+#endif
+
+    // TODO:
+    // - Smash 4: ~1450 ms
+    // - Wii U Menu: ~250 ms
+    // - Mii Maker: 100 ms
+    // scan results NEED TO BE CACHED
+    uint32_t found = gSignatureScanner.scanModule(textAddr,
+        textSize, matches, SIGSCAN_MAX_MATCHES);
+
+#if DEBUG
+    auto t1 = std::chrono::high_resolution_clock::now();
+    auto ms = duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+    DEBUG_FUNCTION_LINE("scanner.scanModule(): %llu ms", ms);
+#endif
+
+    for (uint32_t m = 0; m < found; ++m) {
+#if DEBUG
+        char log[256];
+        snprintf(log, sizeof(log), "Decoded \"%s\" effective=%08X physical=%08X", matches[m].pDef->name, matches[m].effectiveAddress, matches[m].physicalAddress);
+        DEBUG_FUNCTION_LINE("%s", log);
+#endif
+
+        // Patch each resolved function entry, once per module.
+        applyPatchFromMatch(matches[m]);
+    }
+
+    return true; // Break out of the loop.
+}
+
+void initPatchHandles() {
+    memset(&gHandles, 0, sizeof(gHandles)); // Clear handle array before use.
+}
+
+void deinitPatchHandles() {
+    // Remove all function patcher handles.
+    for (int i = 0; i < gHandleIndex; i++) {
+        FunctionPatcher_RemoveFunctionPatch(gHandles[i]);
+    }
+    gHandleIndex = 0;
+}

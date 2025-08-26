@@ -1,5 +1,5 @@
 #include "../src/utils/SignatureScanner.h"
-#include "../src/patches.h"
+#include "../src/ffl_patches.h"
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -27,8 +27,9 @@ protected:
 /// Helper to load an ELF file entirely into memory.
 static std::vector<uint8_t> loadFile(const std::string& path) {
     std::ifstream f(path, std::ios::binary);
-    return std::vector<uint8_t>((std::istreambuf_iterator<char>(f)),
-                                 std::istreambuf_iterator<char>());
+    return std::vector<uint8_t>(
+        std::istreambuf_iterator<char>(f),
+        std::istreambuf_iterator<char>());
 }
 
 // Test scanning a synthetic buffer
@@ -70,7 +71,11 @@ TEST_F(SignatureScannerTest, BenchmarkElfs) {
     // TODO: Verify the CORRECT locations of these in tables.
 
     for (auto& ent : fs::directory_iterator(dir)) {
-        if (!ent.is_regular_file()) continue;
+        if (!ent.is_regular_file()) {
+            continue;
+        }
+        printf("open elf file: %s\n", ent.path().c_str());
+
         auto buf = loadFile(ent.path().string());
         auto t0 = high_resolution_clock::now();
 
@@ -85,7 +90,7 @@ TEST_F(SignatureScannerTest, BenchmarkElfs) {
             const uint32_t effectiveOffset =
                 // Specifically choose to lose the 64-bit precision, this isn't a pointer anymore.
                 static_cast<uint32_t>(match.effectiveAddress - textBase);
-            printf("function %s: file offset=0x%08X, value=0x%08X\n", match.pDef->name, effectiveOffset,
+            printf("  - %s: file offset=0x%08X, value=0x%08X\n", match.pDef->name, effectiveOffset,
                 SignatureScanner::load_be_u32(reinterpret_cast<uint8_t*>(match.effectiveAddress)));
         }
 
