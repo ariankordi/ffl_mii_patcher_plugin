@@ -8,9 +8,14 @@
     // extern "C" uint32_t OSEffectiveToPhysical(uint32_t addr);
 #endif
 
-SignatureScanner::SignatureScanner(const SignatureSet* set,
+SignatureScanner::SignatureScanner(
+    const SignatureDefinition* list,
+    uint32_t signatureCount,
     ToPhysicalFunction toPhysicalFunction)
-: mSet(set), mMaxSigWords(0), mEffToPhys(toPhysicalFunction) {
+: mSignatureList(list),
+  mSignatureCount(signatureCount),
+  mMaxSigWords(0),
+  mEffToPhys(toPhysicalFunction) {
 
     if (!mEffToPhys) {
 #if defined(__WIIU__)
@@ -21,12 +26,12 @@ SignatureScanner::SignatureScanner(const SignatureSet* set,
 #endif
     }
 
-    if (!mSet) {
+    if (!mSignatureList || !mSignatureCount) {
         return;
     }
-    for (uint32_t i = 0; i < mSet->count; ++i) {
-        if (mSet->defs[i].wordCount > mMaxSigWords) {
-            mMaxSigWords = mSet->defs[i].wordCount;
+    for (uint32_t i = 0; i < mSignatureCount; ++i) {
+        if (mSignatureList[i].wordCount > mMaxSigWords) {
+            mMaxSigWords = mSignatureList[i].wordCount;
         }
     }
 }
@@ -193,7 +198,7 @@ uint32_t SignatureScanner::scanModule(uintptr_t textBase,
                                       size_t textSize,
                                       SignatureMatch* outMatches,
                                       uint32_t maxMatches) const {
-    if (!mSet || mSet->count == 0 ||
+    if (!mSignatureList || mSignatureCount == 0 ||
         !textBase || textSize < 4 ||
         !outMatches || maxMatches == 0) {
         return 0;
@@ -205,8 +210,8 @@ uint32_t SignatureScanner::scanModule(uintptr_t textBase,
     // Advance 4 bytes at a time (PPC instruction size).
     // Single pass. For each offset, try each signature whose length fits.
     for (uintptr_t cur = textBase; cur + (mMaxSigWords << 2) <= textEnd; cur += 4) {
-        for (uint32_t s = 0; s < mSet->count; ++s) {
-            const SignatureDefinition& sig = mSet->defs[s];
+        for (uint32_t s = 0; s < mSignatureCount; ++s) {
+            const SignatureDefinition& sig = mSignatureList[s];
             const uint32_t patBytes = (sig.wordCount << 2);
             if (cur + patBytes > textEnd) {
                 continue;

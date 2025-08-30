@@ -42,21 +42,18 @@ struct SignatureMatch {
     uintptr_t   physicalAddress;      ///< Physical address via OSEffectiveToPhysical.
 };
 
-/// Set of signatures that were found.
-struct SignatureSet {
-    SignatureDefinition defs[SIGSCAN_MAX_SIGNATURES];
-    uint32_t            count;
-};
-
 typedef uintptr_t (*ToPhysicalFunction)(uintptr_t);
 
 /// Scanner class for locating function entrypoints in modules.
 /// Designed for PowerPC-specific code.
 class SignatureScanner {
 public:
-    /// Construct with a pre-filled SignatureSet.
-    explicit SignatureScanner(const SignatureSet* set,
-        ToPhysicalFunction toPhysicalFunction = nullptr);
+    /// Construct with a list of signatures.
+    explicit SignatureScanner(
+        const SignatureDefinition* list,
+        uint32_t signatureCount,
+        ToPhysicalFunction toPhysicalFunction = nullptr
+    );
 
     /**
      * @brief Scan one module's .text range once and resolve all known signatures.
@@ -78,10 +75,11 @@ public:
                (uint32_t(p[2]) <<  8) |  uint32_t(p[3]);
     }
 private:
-    const SignatureSet* mSet;
-    uint32_t            mMaxSigWords; ///< Max wordCount across all signatures.
+    const SignatureDefinition* mSignatureList;
+    const uint32_t             mSignatureCount;
+    uint32_t                   mMaxSigWords; ///< Max wordCount across all signatures.
     /// Pointer for function to convert effective to physical addresses.
-    ToPhysicalFunction  mEffToPhys;
+    ToPhysicalFunction         mEffToPhys;
 
     /// Decode a BL instruction and compute branch target.
     static bool decodeBLTarget(uintptr_t instrEffAddr, uintptr_t& outTargetEff);

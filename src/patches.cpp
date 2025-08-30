@@ -11,7 +11,7 @@
 
 #include "utils/SignatureScanner.h"
 #include "patches.h"
-#include "ffl_patches.h" // cSignatureSetFFL
+#include "ffl_patches.h" // cSignaturesFFL
 
 static constexpr int MAX_PATCHED_HANDLES = 15;
 /// A map of every patched function handle added.
@@ -59,7 +59,8 @@ static void applyPatchFromMatch(const SignatureMatch& match) {
 }
 
 /// Global SignatureScanner instance set up with FFL signature set.
-static const SignatureScanner gSignatureScanner(&cSignatureSetFFL);
+static const SignatureScanner gSignatureScanner(cSignaturesFFL.data(),
+    cSignaturesFFL.size());
 
 bool scanSingleModuleForPatchFFL(OSDynLoad_NotifyData& module) {
     uint32_t textAddr = module.textAddr;

@@ -4,6 +4,7 @@ CompileFlags: # Tweak compilation settings for Aroma plugin environment.
     - "-Wall"
     - "-Wextra" # Strict checking.
     - "-Wconversion"
+    - "-Wpedantic" # Strict ISO C/C++ standards checking.
     # Make sure we still get errors despite some being suppressed.
     # This may have to be adjusted to be higher.
     - "-ferror-limit=150"

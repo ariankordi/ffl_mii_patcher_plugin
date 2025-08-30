@@ -15,7 +15,7 @@ static constexpr FFLColor cColorRed       { 1.0f, 0.0f, 0.0f, 1.0f };
 
 /// nn::mii::detail::EyeWhiteColor, nn::mii::detail::TeethColor
 static constexpr FFLColor cColorWhite     { 1.0f, 1.0f, 1.0f, 1.0f };
-/// nn::mii::detail::EyeShadowColor
+/// nn::mii::detail::EyeShadowColor (Cyan)
 static constexpr FFLColor cColorEyeShadow { 0.0f, 1.0f, 1.0f, 1.0f };
 // While ffl_patches.h DEFINES functions, we need to DECLARE functions here.
 
@@ -135,6 +135,10 @@ void my_FFLiMiiDataCore2CharInfo(void* dst, const void* src, char16_t* creatorNa
 DECL_FUNCTION(void, FFLiInitModulateEye, void* pParam, int colorGB, int colorR, const void* pTexture);
 // real_ pointer will be written by FunctionPatcher.
 void my_FFLiInitModulateEye(void* pParam, int /*colorGB*/, int /*colorR*/, const void* pTexture) {
+    //if ((colorGB & FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK) == 0) {
+    //    return real_FFLiInitModulateEye(pParam, colorGB, colorR, pTexture);
+    //}
+
     FFLModulateParam& param = *reinterpret_cast<FFLModulateParam*>(pParam);
     param.mode = FFL_MODULATE_MODE_RGB_LAYERED;
     param.type = FFL_MODULATE_TYPE_EYE;
@@ -151,4 +155,27 @@ void my_FFLiInitModulateEye(void* pParam, int /*colorGB*/, int /*colorR*/, const
     // Color B is the inner eye color.
     // (Use colorGB for eye color index.)
     param.pColorB = &cColorRed;
+}
+
+DECL_FUNCTION(void, FFLiInitModulateMouth, void* pParam, int color, const void* pTexture);
+// real_ pointer will be written by FunctionPatcher.
+void my_FFLiInitModulateMouth(void* pParam, int /*color*/, const void* pTexture) {
+    //if ((color & FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK) == 0) {
+    //    return real_FFLiInitModulateMouth(pParam, color, pTexture);
+    //}
+
+    FFLModulateParam& param = *reinterpret_cast<FFLModulateParam*>(pParam);
+    param.mode = FFL_MODULATE_MODE_RGB_LAYERED;
+    param.type = FFL_MODULATE_TYPE_MOUTH;
+    param.pGX2Texture = pTexture;
+
+    // Color B, aka: nn::mii::detail::TeethColor
+    // https://github.com/aboood40091/ffl/blob/73fe9fc70c0f96ebea373122e50f6d3acc443180/src/FFLiColor.cpp#L319
+    param.pColorB = &cColorWhite;
+
+    // Color R, from the common color table.
+    param.pColorR = &cColorRed;
+
+    // Color G, from: nn::mii::detail::UpperLipColorTable
+    param.pColorG = &cColorEyeShadow; // Cyan for testing.
 }
