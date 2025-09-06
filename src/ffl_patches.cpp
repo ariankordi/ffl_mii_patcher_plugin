@@ -9,6 +9,7 @@
 #endif
 
 #include "ffl_types.h"
+//#include "utils/base64enc.h"
 
 /// Red constant color for testing.
 static constexpr FFLColor cColorRed       { 1.0f, 0.0f, 0.0f, 1.0f };
@@ -19,92 +20,78 @@ static constexpr FFLColor cColorWhite     { 1.0f, 1.0f, 1.0f, 1.0f };
 static constexpr FFLColor cColorEyeShadow { 0.0f, 1.0f, 1.0f, 1.0f };
 // While ffl_patches.h DEFINES functions, we need to DECLARE functions here.
 
+#include "ffl_colors.h"
+
 DECL_FUNCTION(const void*, FFLiGetHairColor, int colorIndex);
 // real_ pointer will be written by FunctionPatcher.
-const void* my_FFLiGetHairColor(int /*colorIndex*/) {
-    // Example: Ignore colorIndex and force RED to see if it's hooked.
-    // Return address of our static Vec4 in plugin .data.
-    return reinterpret_cast<const void*>(&cColorRed);
+const void* my_FFLiGetHairColor(int colorIndex) {
+    if ((colorIndex & FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK) == 0) {
+        return real_FFLiGetHairColor(colorIndex);
+    }
+    // return reinterpret_cast<const void*>(&cColorRed);
+
+    const int i = colorIndex & FFLI_NN_MII_COMMON_COLOR_MASK;
+    return reinterpret_cast<const void*>(&nnmiiCommonColors[i][1]);
+}
+
+DECL_FUNCTION(const void*, FFLiGetGlassColor, int colorIndex);
+const void* my_FFLiGetGlassColor(int colorIndex) {
+    if ((colorIndex & FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK) == 0) {
+        return real_FFLiGetGlassColor(colorIndex);
+    }
+    const int i = colorIndex & FFLI_NN_MII_COMMON_COLOR_MASK;
+    return reinterpret_cast<const void*>(&nnmiiCommonColors[i][1]);
+}
+
+DECL_FUNCTION(const void*, FFLiGetFacelineColor, int colorIndex);
+const void* my_FFLiGetFacelineColor(int colorIndex) {
+    // Get sRGB color for now.
+    return reinterpret_cast<const void*>(&nnmiiFacelineColors[colorIndex][1]);
     // return real_FFLiGetHairColor(colorIndex);
 }
 
-DECL_FUNCTION(int, FFLiVerifyCharInfoWithReason, void* info, int nameCheck);
-int my_FFLiVerifyCharInfoWithReason(void* info, int nameCheck) {
-    int result = real_FFLiVerifyCharInfoWithReason(info, nameCheck);
+DECL_FUNCTION(int, FFLiVerifyCharInfoWithReason, void* pInfo, int nameCheck);
+int my_FFLiVerifyCharInfoWithReason(void* pInfo, int nameCheck) {
+
+    FFLiCharInfo prevInfo;
+    memcpy(&prevInfo, pInfo, sizeof(FFLiCharInfo));
+
+    FFLiCharInfo& info = *reinterpret_cast<FFLiCharInfo*>(pInfo);
+    // use placeholder colors to spoof verification process
+    info.hair.color = 4; // gray
+    info.eye.color = 1; // gray
+    info.eyebrow.color = 4; // gray
+    info.glass.color = 5; // dark gray
+
+    info.faceline.color = 0; // white
+    info.beard.color = 1; // gray
+    info.mouth.color = 0;
+
+    int result = real_FFLiVerifyCharInfoWithReason(pInfo, nameCheck);
 #ifdef __WIIU__
     if (result != 0 &&
-        result != 21) { // this is encountered when inputting null
+        result != 21 && // this is encountered when inputting null
                         // which a lot of games like to do for some reason
+        result < static_cast<int>(FFLiVerifyReasonStrings.size()) // Maximum.
+    ) {
         char log[96];
-        snprintf(log, sizeof(log), "charinfo verify fail: %d", result);
+        const char* str = FFLiVerifyReasonStrings.data()[result];
+        snprintf(log, sizeof(log), "charinfo verify fail: %d (%s)", result, str);
+
         DEBUG_FUNCTION_LINE_INFO("%s", log);
         NotificationModule_AddErrorNotification(log);
     }
 #endif
     // return 0; // FFLI_VERIFY_REASON_OK
 
-
+    memcpy(pInfo, &prevInfo, sizeof(FFLiCharInfo));
+/*
+    char base64[BASE64_ENCODED_SIZE(sizeof(FFLiCharInfo))];
+    base64_encode(static_cast<const uint8_t*>(pInfo), sizeof(FFLiCharInfo), base64);
+    DEBUG_FUNCTION_LINE_VERBOSE("charinfo after verify: %s", base64);
+*/
     return result;
 }
-
-/**
- * @brief Calculates the maximum Base64 encoded length for a given number of bytes.
- * @details Base64 expands every 3 bytes into 4 characters, plus padding.
- * Add 1 extra for null terminator.
- * @param n Number of input bytes.
- * @return Maximum required output size in bytes.
- */
-#define BASE64_ENCODED_SIZE(n) ((((n) + 2) / 3) * 4 + 1)
-
-/**
- * @brief Encodes a binary buffer into Base64 text.
- * @param input Pointer to raw input bytes.
- * @param len Number of bytes in input.
- * @param output Pointer to destination buffer (must be at least BASE64_ENCODED_SIZE(len)).
- */
-/*
-static void base64_encode(const uint8_t* input, size_t len, char* output) {
-    static const char cBase64Alphabet[] =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz"
-        "0123456789+/";
-
-    size_t outIndex = 0;
-    size_t i = 0;
-
-    while (i + 2 < len) {
-        // Take 3 bytes and split into 4 groups of 6 bits.
-        int32_t triple = (input[i] << 16) | (input[i + 1] << 8) | input[i + 2];
-        output[outIndex++] = cBase64Alphabet[(triple >> 18) & 0x3F];
-        output[outIndex++] = cBase64Alphabet[(triple >> 12) & 0x3F];
-        output[outIndex++] = cBase64Alphabet[(triple >> 6)  & 0x3F];
-        output[outIndex++] = cBase64Alphabet[triple & 0x3F];
-        i += 3;
-    }
-
-    // Handle remaining 1 or 2 bytes with padding.
-    if (i < len) {
-        int32_t triple = input[i] << 16;
-        if (i + 1 < len) {
-            triple |= input[i + 1] << 8;
-        }
-
-        output[outIndex++] = cBase64Alphabet[(triple >> 18) & 0x3F];
-        output[outIndex++] = cBase64Alphabet[(triple >> 12) & 0x3F];
-
-        if (i + 1 < len) {
-            output[outIndex++] = cBase64Alphabet[(triple >> 6) & 0x3F];
-            output[outIndex++] = '=';
-        } else {
-            output[outIndex++] = '=';
-            output[outIndex++] = '=';
-        }
-    }
-
-    // Null terminate.
-    output[outIndex] = '\0';
-}
-*/
 
 DECL_FUNCTION(void, FFLiMiiDataCore2CharInfo, void* dst, const void* src, char16_t* creatorName, int birthday);
 void my_FFLiMiiDataCore2CharInfo(void* dst, const void* src, char16_t* creatorName, int birthday) {
@@ -134,10 +121,10 @@ void my_FFLiMiiDataCore2CharInfo(void* dst, const void* src, char16_t* creatorNa
 
 DECL_FUNCTION(void, FFLiInitModulateEye, void* pParam, int colorGB, int colorR, const void* pTexture);
 // real_ pointer will be written by FunctionPatcher.
-void my_FFLiInitModulateEye(void* pParam, int /*colorGB*/, int /*colorR*/, const void* pTexture) {
-    //if ((colorGB & FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK) == 0) {
-    //    return real_FFLiInitModulateEye(pParam, colorGB, colorR, pTexture);
-    //}
+void my_FFLiInitModulateEye(void* pParam, int colorGB, int colorR, const void* pTexture) {
+    if ((colorGB & FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK) == 0) {
+        return real_FFLiInitModulateEye(pParam, colorGB, colorR, pTexture);
+    }
 
     FFLModulateParam& param = *reinterpret_cast<FFLModulateParam*>(pParam);
     param.mode = FFL_MODULATE_MODE_RGB_LAYERED;
@@ -154,15 +141,18 @@ void my_FFLiInitModulateEye(void* pParam, int /*colorGB*/, int /*colorR*/, const
 
     // Color B is the inner eye color.
     // (Use colorGB for eye color index.)
-    param.pColorB = &cColorRed;
+    // param.pColorB = &cColorRed;
+    const int i = colorGB & FFLI_NN_MII_COMMON_COLOR_MASK;
+    // DEBUG_FUNCTION_LINE_INFO("get eye color: %u, float: %f %f %f\n", i, nnmiiCommonColors[i][1].r, nnmiiCommonColors[i][1].g, nnmiiCommonColors[i][1].b);
+    param.pColorB = &nnmiiCommonColors[i][1];
 }
 
 DECL_FUNCTION(void, FFLiInitModulateMouth, void* pParam, int color, const void* pTexture);
 // real_ pointer will be written by FunctionPatcher.
-void my_FFLiInitModulateMouth(void* pParam, int /*color*/, const void* pTexture) {
-    //if ((color & FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK) == 0) {
-    //    return real_FFLiInitModulateMouth(pParam, color, pTexture);
-    //}
+void my_FFLiInitModulateMouth(void* pParam, int color, const void* pTexture) {
+    if ((color & FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK) == 0) {
+        return real_FFLiInitModulateMouth(pParam, color, pTexture);
+    }
 
     FFLModulateParam& param = *reinterpret_cast<FFLModulateParam*>(pParam);
     param.mode = FFL_MODULATE_MODE_RGB_LAYERED;
@@ -174,7 +164,9 @@ void my_FFLiInitModulateMouth(void* pParam, int /*color*/, const void* pTexture)
     param.pColorB = &cColorWhite;
 
     // Color R, from the common color table.
-    param.pColorR = &cColorRed;
+    const int i = color & FFLI_NN_MII_COMMON_COLOR_MASK;
+    param.pColorR = &nnmiiCommonColors[i][1];
+    // param.pColorR = &cColorRed;
 
     // Color G, from: nn::mii::detail::UpperLipColorTable
     param.pColorG = &cColorEyeShadow; // Cyan for testing.

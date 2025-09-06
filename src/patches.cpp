@@ -13,10 +13,9 @@
 #include "patches.h"
 #include "ffl_patches.h" // cSignaturesFFL
 
-static constexpr int MAX_PATCHED_HANDLES = 15;
 /// A map of every patched function handle added.
-static PatchedFunctionHandle gHandles[MAX_PATCHED_HANDLES];
-static int gHandleIndex; ///< Current index for gHandles array.
+PatchedFunctionHandle gHandles[MAX_PATCHED_HANDLES];
+int gHandleIndex; ///< Current index for gHandles array.
 
 static void applyPatchFromMatch(const SignatureMatch& match) {
     assert(match.pDef != nullptr);

@@ -1,4 +1,4 @@
-# FFL Aroma patcher plugin
+# FFL Mii Patcher plugin for Aroma
 
 This is a plugin I'm making to play with patching FFL (Cafe Face Library), a library statically linked into any title that uses Miis at all. Goal is unclear as of now.
 

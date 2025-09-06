@@ -14,10 +14,9 @@
 // // ---------------------------------------------------------------
 // //  Plugin Metadata
 // // ---------------------------------------------------------------
-WUPS_PLUGIN_NAME("FFL patching test");
-// WUPS_PLUGIN_DESCRIPTION("Test: replace FFLiGetHairColor in ffl_app.rpx");
+WUPS_PLUGIN_NAME("FFL Mii Patcher Plugin");
 WUPS_PLUGIN_VERSION("0.0.1");
-WUPS_PLUGIN_AUTHOR("arian");
+WUPS_PLUGIN_AUTHOR("ariankordi");
 WUPS_PLUGIN_LICENSE("GPLv3");
 
 /// Called after FunctionPatcher_InitLibrary(), when the app's modules are loaded.
