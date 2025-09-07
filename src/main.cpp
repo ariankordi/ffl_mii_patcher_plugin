@@ -10,6 +10,7 @@
 // Example logger from: https://github.com/wiiu-env/WiiUPluginSystem/blob/3b1133c9c9626e0b9a30bf890c3e2f66a7bcad51/plugins/example_plugin/src/utils/logger.c#L12
 #include "utils/logger.h"
 #include "patches.h"
+#include "editor_patches.h"
 
 // // ---------------------------------------------------------------
 // //  Plugin Metadata
@@ -148,6 +149,8 @@ ON_APPLICATION_START() {
     if (!gFunctionPatcherInitialized) {
         return;
     }
+
+    addPatchesMiiStudio();
 
     checkAndScanModules(); // Calls scanAllModulesAndPatchFFL.
 }

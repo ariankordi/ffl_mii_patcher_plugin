@@ -5,8 +5,17 @@
 
 // Somewhat of a HACK: Mark s32 color values as being colors
 // meant to be looked up in the common color table (Switch Mii colors)
-#define FFLI_NN_MII_COMMON_COLOR_MASK ~(1 << 31)
-#define FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK (1 << 31)
+#define FFLI_NN_MII_COMMON_COLOR_MASK ~FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK
+//#define FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK (1 << 31)
+//#define FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK (1 << 7)
+#define FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK (1 << 15)
+// TODO: 1 << 31 causes the mii studio select function to overflow...?????
+
+// 1 << 7 can also be used.
+// The rationale for going with 31, is that the LSB could
+// be extracted alone to get the common color, or, in
+// the case of packing into a u8 format, if it gets "truncated"
+// then it'll end up being the LSB. This is to be verified though.
 
 #define FFLI_NN_MII_COMMON_COLOR_MAX 100
 #define FFLI_NN_MII_FACELINE_COLOR_MAX 10
