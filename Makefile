@@ -22,7 +22,7 @@ WUMS_ROOT := $(DEVKITPRO)/wums
 #-------------------------------------------------------------------------------
 TARGET		:=	FFLMiiPatcherPlugin
 BUILD		:=	build
-SOURCES		:=	src src/utils
+SOURCES		:=	src src/utils effsd/src
 DATA		:=	data
 INCLUDES	:=	src
 

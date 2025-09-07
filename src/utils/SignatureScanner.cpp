@@ -106,27 +106,6 @@ bool SignatureScanner::walkBackToPrologue(uintptr_t anyInstrEff,
     // Scan up to 32 instructions back.
     constexpr int maxBack = 32;
 
-/*
-    for (int i = 0; i < maxBack; ++i) {
-        uintptr_t addr = anyInstrEff - (uint32_t(i) << 2);
-        if (addr < textBase) {
-            break;
-        }
-
-        uint32_t w0 = load_be_u32(reinterpret_cast<const uint8_t*>(addr));
-        if (w0 == PROLOGUE_MFSPR_LR) {
-            // Next instruction should be stwu r1,-X(r1).
-            uintptr_t n1Addr = addr + 4;
-            if (n1Addr + 4 <= textEnd) {
-                uint32_t w1 = load_be_u32(reinterpret_cast<const uint8_t*>(n1Addr));
-                if ( (w1 & PROLOGUE_STWU_MASK) == PROLOGUE_STWU_VAL ) {
-                    outStartEff = addr;
-                    return true;
-                }
-            }
-        }
-    }
-*/
     // Accept either order: (mfspr then stwu) OR (stwu then mfspr).
     for (int i = 0; i < maxBack; ++i) {
         uintptr_t addr = anyInstrEff - (uint32_t(i) << 2);
@@ -136,26 +115,33 @@ bool SignatureScanner::walkBackToPrologue(uintptr_t anyInstrEff,
 
         // Case A: mfspr then stwu
         if (insn == PROLOGUE_MFSPR_LR) {
-            uint32_t next = load_be_u32(reinterpret_cast<const uint8_t*>(addr + 4));
-            if ((next & PROLOGUE_STWU_MASK) == PROLOGUE_STWU_VAL) {
-                outStartEff = addr;
-                return true;
+            uintptr_t nextAddr = addr + 4;
+            if (nextAddr + 4 <= textEnd) {
+                uint32_t next = load_be_u32(reinterpret_cast<const uint8_t*>(nextAddr));
+
+                if ((next & PROLOGUE_STWU_MASK) == PROLOGUE_STWU_VAL) {
+                    outStartEff = addr;
+                    return true;
+                }
             }
         }
 
         // Case B: stwu then (optionally stmw) then mfspr
         if ((insn & PROLOGUE_STWU_MASK) == PROLOGUE_STWU_VAL) {
-            uint32_t next = load_be_u32(reinterpret_cast<const uint8_t*>(addr + 4));
-            // Allow either direct mfspr, or stmw then mfspr.
-            if (next == PROLOGUE_MFSPR_LR) {
-                outStartEff = addr;
-                return true;
-            }
-            if ((next & 0xFC000000) == 0xBC000000) { // stmw opcode
-                uint32_t next2 = load_be_u32(reinterpret_cast<const uint8_t*>(addr + 8));
-                if (next2 == PROLOGUE_MFSPR_LR) {
+            uintptr_t nextAddr = addr + 4;
+            if (nextAddr + 4 <= textEnd) {  // Add check for valid address range
+                uint32_t next = load_be_u32(reinterpret_cast<const uint8_t*>(nextAddr));
+                // Allow either direct mfspr, or stmw then mfspr.
+                if (next == PROLOGUE_MFSPR_LR) {
                     outStartEff = addr;
                     return true;
+                }
+                if ((next & 0xFC000000) == 0xBC000000) { // stmw opcode
+                    uint32_t next2 = load_be_u32(reinterpret_cast<const uint8_t*>(addr + 8));
+                    if (next2 == PROLOGUE_MFSPR_LR) {
+                        outStartEff = addr;
+                        return true;
+                    }
                 }
             }
         }

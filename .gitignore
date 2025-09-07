@@ -1,8 +1,11 @@
-# Prototypes
-main-a*.cpp
-
-tests/*Test
-tests/*.dSYM*
+# Builds
 build
 *.elf
 *.wps
+
+# Prototypes
+main-a*.cpp
+
+# Test binaries
+tests/*Test
+*.dSYM*

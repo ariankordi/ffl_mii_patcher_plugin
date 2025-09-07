@@ -10,6 +10,9 @@
 
 #include "ffl_types.h"
 //#include "utils/base64enc.h"
+#ifdef __WIIU__
+#include "../effsd/src/NxInVer3Pack.hpp"
+#endif
 
 /// Red constant color for testing.
 static constexpr FFLColor cColorRed       { 1.0f, 0.0f, 0.0f, 1.0f };
@@ -58,14 +61,13 @@ int my_FFLiVerifyCharInfoWithReason(void* pInfo, int nameCheck) {
 
     FFLiCharInfo& info = *reinterpret_cast<FFLiCharInfo*>(pInfo);
     // use placeholder colors to spoof verification process
+    info.faceline.color = 0; // white
     info.hair.color = 4; // gray
     info.eye.color = 1; // gray
     info.eyebrow.color = 4; // gray
-    info.glass.color = 5; // dark gray
-
-    info.faceline.color = 0; // white
-    info.beard.color = 1; // gray
     info.mouth.color = 0;
+    info.beard.color = 1; // gray
+    info.glass.color = 5; // dark gray
 
     int result = real_FFLiVerifyCharInfoWithReason(pInfo, nameCheck);
 #ifdef __WIIU__
@@ -85,18 +87,29 @@ int my_FFLiVerifyCharInfoWithReason(void* pInfo, int nameCheck) {
     // return 0; // FFLI_VERIFY_REASON_OK
 
     memcpy(pInfo, &prevInfo, sizeof(FFLiCharInfo));
-/*
+    /*
     char base64[BASE64_ENCODED_SIZE(sizeof(FFLiCharInfo))];
     base64_encode(static_cast<const uint8_t*>(pInfo), sizeof(FFLiCharInfo), base64);
     DEBUG_FUNCTION_LINE_VERBOSE("charinfo after verify: %s", base64);
-*/
+    */
     return result;
+}
+
+void printNxExtensionFields(NxExtensionFields& ext) {
+    DEBUG_FUNCTION_LINE_VERBOSE("Faceline Color: %u", ext.facelineColor);
+    DEBUG_FUNCTION_LINE_VERBOSE("Hair Color:     %u", ext.hairColor);
+    DEBUG_FUNCTION_LINE_VERBOSE("Eye Color:      %u", ext.eyeColor);
+    DEBUG_FUNCTION_LINE_VERBOSE("Eyebrow Color:  %u", ext.eyebrowColor);
+    DEBUG_FUNCTION_LINE_VERBOSE("Mouth Color:    %u", ext.mouthColor);
+    DEBUG_FUNCTION_LINE_VERBOSE("Beard Color:    %u", ext.beardColor);
+    DEBUG_FUNCTION_LINE_VERBOSE("Glass Color:    %u", ext.glassColor);
+    DEBUG_FUNCTION_LINE_VERBOSE("Glass Type:     %u", ext.glassType);
 }
 
 DECL_FUNCTION(void, FFLiMiiDataCore2CharInfo, void* dst, const void* src, char16_t* creatorName, int birthday);
 void my_FFLiMiiDataCore2CharInfo(void* dst, const void* src, char16_t* creatorName, int birthday) {
 #ifdef __WIIU__
-/*
+    /*
     if (creatorName !== nullptr) { // official
         //uint8_t official[92];
         //memcpy(official, src, 92);
@@ -109,11 +122,73 @@ void my_FFLiMiiDataCore2CharInfo(void* dst, const void* src, char16_t* creatorNa
         DEBUG_FUNCTION_LINE_INFO("%s", log);
         NotificationModule_AddInfoNotification(log);
     }
-*/
+    */
 #endif
 
     real_FFLiMiiDataCore2CharInfo(dst, src, creatorName, birthday);
+
+#ifdef __WIIU__
+    const Ver3MiiDataCore& core = *reinterpret_cast<const Ver3MiiDataCore*>(src);
+
+    ExtraDataBlock block{};
+    NxInVer3Pack::ExtractExtra(core, block);
+    bool hasExtensionData = (reinterpret_cast<uint32_t*>(block.data[0]) != 0);
+    if (hasExtensionData) {
+        NxExtensionFields out{};
+        NxInVer3Pack::Unpack(block, core, out);
+        DEBUG_FUNCTION_LINE_VERBOSE("Detected extension data.\n");
+        printNxExtensionFields(out);
+
+        FFLiCharInfo& info = *reinterpret_cast<FFLiCharInfo*>(dst);
+        // These indicate all of the fields for which common colors
+        // should be enabled. If a field here isn't enabled, then
+        // note that it also won't be there when the system re-encodes to StoreData.
+
+        info.faceline.color = out.facelineColor;
+        // Since faceline color isn't masked, a high value
+        // should be able to go a little bit out of bounds.
+        info.hair.color = out.hairColor | FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK;
+        info.eye.color = out.eyeColor | FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK;
+        info.eyebrow.color = out.eyebrowColor | FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK;
+        //info.mouth.color = out.mouthColor | FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK;
+        //info.beard.color = out.beardColor | FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK;
+        info.glass.color = out.glassColor | FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK;
+        // info.glass.type = out.glassType;
+        // Extended glass types require a new texture resource
+        // and probably aren't possible without more modifications.
+    }
+#endif
 }
+
+// This function needs to be patched as well, because it turns
+// out that the system will often try to decode to CharInfo
+// and then re-encode back to StoreData.
+// Happens when scanning QR codes, or, of course, editing in the editor.
+DECL_FUNCTION(void, FFLiCharInfo2MiiDataCore, void* dst, const void* src, int birthday);
+void my_FFLiCharInfo2MiiDataCore(void* dst, const void* src, int birthday) {
+    real_FFLiCharInfo2MiiDataCore(dst, src, birthday);
+
+#ifdef __WIIU__
+    Ver3MiiDataCore& core = *reinterpret_cast<Ver3MiiDataCore*>(dst);
+
+    const FFLiCharInfo& info = *reinterpret_cast<const FFLiCharInfo*>(src);
+    bool hasExtensionData = (info.hair.color & FFLI_NN_MII_COMMON_COLOR_ENABLE_MASK) != 0;
+    if (hasExtensionData) {
+        NxExtensionFields in{};
+        // All fields are casted to u8. Functional style casts are shorter.
+        in.facelineColor = u8(info.faceline.color);
+        in.hairColor = u8(info.hair.color & FFLI_NN_MII_COMMON_COLOR_MASK);
+        in.eyeColor = u8(info.eye.color & FFLI_NN_MII_COMMON_COLOR_MASK);
+        in.eyebrowColor = u8(info.eyebrow.color & FFLI_NN_MII_COMMON_COLOR_MASK);
+        in.mouthColor = u8(info.mouth.color & FFLI_NN_MII_COMMON_COLOR_MASK);
+        in.beardColor = u8(info.beard.color & FFLI_NN_MII_COMMON_COLOR_MASK);
+        in.glassColor = u8(info.glass.color & FFLI_NN_MII_COMMON_COLOR_MASK);
+        in.glassType = u8(info.glass.type);
+        NxInVer3Pack::Pack(in, core);
+    }
+#endif
+}
+
 
 //void my_FFLiStoreData_SwapEndian(void *self) {
 //    return real_FFLiStoreData_SwapEndian(self);

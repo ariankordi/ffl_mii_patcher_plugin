@@ -21,7 +21,7 @@ extern DECL_FUNCTION(const void*, FFLiGetHairColor, int colorIndex);
 /// https://github.com/aboood40091/ffl/blob/73fe9fc70c0f96ebea373122e50f6d3acc443180/src/detail/FFLiCharInfo.cpp#L28
 extern DECL_FUNCTION(int, FFLiVerifyCharInfoWithReason, void* pInfo, /*BOOL*/int nameCheck);
 /// https://github.com/ariankordi/ffl/blob/0fe8e687dac5963000e3214a2c54d9219c99d63f/src/FFLiMiiData.cpp#L146
-// extern DECL_FUNCTION(void, FFLiMiiDataCore2CharInfo, void* dst, const void* src, char16_t* creatorName, /*BOOL*/int birthday);
+extern DECL_FUNCTION(void, FFLiMiiDataCore2CharInfo, void* dst, const void* src, char16_t* creatorName, /*BOOL*/int birthday);
 /// https://github.com/aboood40091/ffl/blob/73fe9fc70c0f96ebea373122e50f6d3acc443180/src/FFLiMiiData.cpp#L242
 extern DECL_FUNCTION(void, FFLiCharInfo2MiiDataCore, void* dst, const void* src, /*BOOL*/int birthday);
 /// https://github.com/aboood40091/ffl/blob/73fe9fc70c0f96ebea373122e50f6d3acc443180/src/FFLiMiiDataCore.cpp#L32
@@ -38,11 +38,11 @@ extern DECL_FUNCTION(const void*, FFLiGetGlassColor, int colorIndex);
 DEFINE_REPLACE_FUNC(FFLiGetHairColor);
 DEFINE_REPLACE_FUNC(FFLiVerifyCharInfoWithReason);
 DEFINE_REPLACE_FUNC(FFLiMiiDataCore2CharInfo);
-// DEFINE_REPLACE_FUNC(FFLiCharInfo2MiiDataCore);
+DEFINE_REPLACE_FUNC(FFLiCharInfo2MiiDataCore);
 // DEFINE_REPLACE_FUNC(FFLiStoreData_SwapEndian);
 DEFINE_REPLACE_FUNC(FFLiInitModulateEye);
-DEFINE_REPLACE_FUNC(FFLiInitModulateMouth);
-DEFINE_REPLACE_FUNC(FFLiGetFacelineColor);
+[[maybe_unused]] DEFINE_REPLACE_FUNC(FFLiInitModulateMouth);
+[[maybe_unused]] DEFINE_REPLACE_FUNC(FFLiGetFacelineColor);
 DEFINE_REPLACE_FUNC(FFLiGetGlassColor);
 
 // // ---------------------------------------------------------------
@@ -90,7 +90,6 @@ static constexpr std::array cSignaturesFFL = std::to_array<SignatureDefinition>(
         .resolveMode = SignatureResolveMode::FunctionStart,
         .branchWordIndex = 0
     },
-    /*
     // Packs Mii data.
     {
         .name = "FFLiCharInfo2MiiDataCore",
@@ -105,7 +104,6 @@ static constexpr std::array cSignaturesFFL = std::to_array<SignatureDefinition>(
         .resolveMode = SignatureResolveMode::FunctionStart,
         .branchWordIndex = 0
     },
-    */
 
 
     /*
