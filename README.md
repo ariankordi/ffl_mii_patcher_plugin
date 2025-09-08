@@ -50,7 +50,7 @@ It takes files as input/output, but since it's a CLI, you can use something like
 
 4. Use the Mii QR code encoder
 
-Go to [this jsfiddle I made for QR encoding](https://jsfiddle.net/arian_/mk5qahvw/4/). Enter the Base64 result from NxInVer3PackCli.
+Go to [this jsfiddle I made for QR encoding](https://jsfiddle.net/arian_/mk5qahvw/5/). Enter the Base64 result from NxInVer3PackCli.
 
 It will show you a QR code of the Mii, but it'll also print out its hex in the console (with checksum). So, you can take this hex and use it in your account.dat to replace the Mii data directly.
 
@@ -67,8 +67,6 @@ If you don't want to do any of this, that's ok. You can use her:
 ## Usage
 
 This plugin currently has no options, and is enabled for all titles. So it's possible that this plugin will cause a certain game to crash if it can't patch it properly. Use with caution.
-
-As of now, the only obvious thing this will do is change all hair/beard/mustache/eyebrow colors to always be red in every game that uses FFL.
 
 ## Building
 

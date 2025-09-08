@@ -100,6 +100,13 @@ bool isTitleIDWiiUMenu(uint64_t titleID = OSGetTitleID()) {
 
 /// Check if it's safe to scan modules before scanning to patch FFL.
 void checkAndScanModules() {
+    // TODO: The snippet below makes sure the plugin won't
+    // work if you open the title from the GamePad's
+    // Quick Launch thing. I uncommented the below to
+    // test with that feature (saves time), but soon
+    // enough we need to actually check the underlying
+    // cause of the crash if we don't do this.
+
     // Check if the Wii U Menu was never loaded.
     if (!gHasLoadedWiiUMenu &&
         // And that the current title ID is not the Wii U Menu.

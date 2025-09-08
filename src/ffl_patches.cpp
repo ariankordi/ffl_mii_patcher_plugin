@@ -95,6 +95,7 @@ int my_FFLiVerifyCharInfoWithReason(void* pInfo, int nameCheck) {
     return result;
 }
 
+#ifdef __WIIU__
 void printNxExtensionFields(NxExtensionFields& ext) {
     DEBUG_FUNCTION_LINE_VERBOSE("Faceline Color: %u", ext.facelineColor);
     DEBUG_FUNCTION_LINE_VERBOSE("Hair Color:     %u", ext.hairColor);
@@ -105,6 +106,7 @@ void printNxExtensionFields(NxExtensionFields& ext) {
     DEBUG_FUNCTION_LINE_VERBOSE("Glass Color:    %u", ext.glassColor);
     DEBUG_FUNCTION_LINE_VERBOSE("Glass Type:     %u", ext.glassType);
 }
+#endif
 
 DECL_FUNCTION(void, FFLiMiiDataCore2CharInfo, void* dst, const void* src, char16_t* creatorName, int birthday);
 void my_FFLiMiiDataCore2CharInfo(void* dst, const void* src, char16_t* creatorName, int birthday) {
