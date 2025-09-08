@@ -150,8 +150,6 @@ ON_APPLICATION_START() {
         return;
     }
 
-    addPatchesMiiStudio();
-
     checkAndScanModules(); // Calls scanAllModulesAndPatchFFL.
 }
 

@@ -19,31 +19,23 @@
 /// https://github.com/aboood40091/ffl/blob/73fe9fc70c0f96ebea373122e50f6d3acc443180/src/FFLiColor.cpp#L186
 extern DECL_FUNCTION(const void*, FFLiGetHairColor, int colorIndex);
 /// https://github.com/aboood40091/ffl/blob/73fe9fc70c0f96ebea373122e50f6d3acc443180/src/detail/FFLiCharInfo.cpp#L28
-extern DECL_FUNCTION(int, FFLiVerifyCharInfoWithReason, void* pInfo, /*BOOL*/int nameCheck);
+// extern DECL_FUNCTION(int, FFLiVerifyCharInfoWithReason, void* pInfo, /*BOOL*/int nameCheck);
 /// https://github.com/ariankordi/ffl/blob/0fe8e687dac5963000e3214a2c54d9219c99d63f/src/FFLiMiiData.cpp#L146
 extern DECL_FUNCTION(void, FFLiMiiDataCore2CharInfo, void* dst, const void* src, char16_t* creatorName, /*BOOL*/int birthday);
-/// https://github.com/aboood40091/ffl/blob/73fe9fc70c0f96ebea373122e50f6d3acc443180/src/FFLiMiiData.cpp#L242
-extern DECL_FUNCTION(void, FFLiCharInfo2MiiDataCore, void* dst, const void* src, /*BOOL*/int birthday);
 /// https://github.com/aboood40091/ffl/blob/73fe9fc70c0f96ebea373122e50f6d3acc443180/src/FFLiMiiDataCore.cpp#L32
 // extern DECL_FUNCTION(void, FFLiStoreData_SwapEndian, void* self);
 /// https://github.com/aboood40091/ffl/blob/812c3ffeabfac501032a5fc6c289e8402b69dc7c/src/FFLiModulate.cpp#L37
 extern DECL_FUNCTION(void, FFLiInitModulateEye, void* pParam, int colorGB, int colorR, const void* pTexture);
 /// https://github.com/aboood40091/ffl/blob/812c3ffeabfac501032a5fc6c289e8402b69dc7c/src/FFLiModulate.cpp#L17
 extern DECL_FUNCTION(void, FFLiInitModulateMouth, void* pParam, int color, const void* pTexture);
-extern DECL_FUNCTION(const void*, FFLiGetFacelineColor, int colorIndex);
-extern DECL_FUNCTION(const void*, FFLiGetGlassColor, int colorIndex);
 
 // function_replacement_data_t structures for functions above.
 
 DEFINE_REPLACE_FUNC(FFLiGetHairColor);
-DEFINE_REPLACE_FUNC(FFLiVerifyCharInfoWithReason);
+// DEFINE_REPLACE_FUNC(FFLiVerifyCharInfoWithReason);
 DEFINE_REPLACE_FUNC(FFLiMiiDataCore2CharInfo);
-DEFINE_REPLACE_FUNC(FFLiCharInfo2MiiDataCore);
-// DEFINE_REPLACE_FUNC(FFLiStoreData_SwapEndian);
 DEFINE_REPLACE_FUNC(FFLiInitModulateEye);
 [[maybe_unused]] DEFINE_REPLACE_FUNC(FFLiInitModulateMouth);
-[[maybe_unused]] DEFINE_REPLACE_FUNC(FFLiGetFacelineColor);
-DEFINE_REPLACE_FUNC(FFLiGetGlassColor);
 
 // // ---------------------------------------------------------------
 // //  Function Matching Signatures
@@ -66,6 +58,7 @@ constexpr SignatureWord cSignatureWordsModulateMouth[] = {
 static constexpr std::array cSignaturesFFL = std::to_array<SignatureDefinition>({
 //static constexpr SignatureSet cSignatureSetFFL = {
     // Verifies Mii data.
+    /*
     {
         .name = "FFLiVerifyCharInfoWithReason",
         .pHookInfo = &replacement_FFLiVerifyCharInfoWithReason,
@@ -79,6 +72,7 @@ static constexpr std::array cSignaturesFFL = std::to_array<SignatureDefinition>(
         .resolveMode = SignatureResolveMode::FunctionStart,
         .branchWordIndex = 0
     },
+    */
     // Unpacks Mii data.
     {
         .name = "FFLiMiiDataCore2CharInfo",
@@ -90,53 +84,6 @@ static constexpr std::array cSignaturesFFL = std::to_array<SignatureDefinition>(
         .resolveMode = SignatureResolveMode::FunctionStart,
         .branchWordIndex = 0
     },
-    // Packs Mii data.
-    {
-        .name = "FFLiCharInfo2MiiDataCore",
-        .pHookInfo = &replacement_FFLiCharInfo2MiiDataCore,
-        .words = {
-            { 0x54e6402e, 0xFFFFFFFF }, // rlwinm r6,r7,0x8,0x0,0x17
-            { 0x815f0000, 0xFFFFFFFF }, // lwz r10,0x0(r31)
-            { 0x7cc04378, 0xFFFFFFFF }, // or r0,r6,r8
-            { 0x500a05fe, 0xFFFFFFFF }  // rlwimi r10,r0,0x0,0x17,0x1f
-        },
-        .wordCount = 4,
-        .resolveMode = SignatureResolveMode::FunctionStart,
-        .branchWordIndex = 0
-    },
-
-
-    /*
-    {
-        .name = "FFLiStoreData_SwapEndian",
-        .pHookInfo = &replacement_FFLiStoreData_SwapEndian,
-        .words = {
-            { 0xA07F005C, 0xFFFFFFFF },
-            { 0x48000001, 0xFC000003 },
-            { 0xA01F005E, 0xFFFFFFFF },
-            { 0xB07F005C, 0xFFFFFFFF }
-        },
-        .wordCount = 4,
-        .resolveMode = SignatureResolveMode::FunctionStart,
-        .branchWordIndex = 0
-    },
-    // Indicator for the current gamma type.
-    // Most all titles use sRGB, but these system
-    // titles are using linear: men.rpx, (applets >) frd.rpx, inf.rpx
-    {
-        .name = "s_ContainerType",
-        .pHookInfo = nullptr,
-        .words = {
-            { 0x4BFFFF91, 0xFFFFFFFF }, // bl InitializeColorContainerIfUninitialized
-            { 0x3D801002, 0xFFFF0000 }, // lis r12,0x10??
-            { 0x818C4370, 0xFFFF0000 }, // lwz r12,-0x????(r12) => s_ContainerType
-            { 0x1C0C0370, 0xFFFFFFFF }, // mulli r0,12,0x370
-        },
-        .wordCount = 4,
-        .resolveMode = SignatureResolveMode::BranchTarget,
-        .branchWordIndex = 2
-    },
-    */
 
     // Color getter functions.
     {
@@ -201,7 +148,7 @@ static constexpr std::array cSignaturesFFL = std::to_array<SignatureDefinition>(
     */
     // Glass color
     {
-        .name = "FFLiGetGlassColor", .pHookInfo = &replacement_FFLiGetGlassColor,
+        .name = "FFLiGetGlassColor", .pHookInfo = &replacement_FFLiGetHairColor,
         .words = {
             { 0x38000008, 0xFFFFFFFF }, // Same as hair, but 04 changed to 08
             { 0x919E0000, 0xFFFFFFFF }, // Store in r12 instead of r31
