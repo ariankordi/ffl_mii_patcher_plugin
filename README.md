@@ -4,6 +4,18 @@ This is a plugin I'm making to play with patching FFL (Cafe Face Library), a lib
 
 (Most of the README, Makefile, main.cpp etc. are from [example_plugin_cpp](https://github.com/wiiu-env/WiiUPluginSystem/tree/3b1133c9c9626e0b9a30bf890c3e2f66a7bcad51/plugins/example_plugin_cpp))
 
+Currently, it tries to patch FFL (by scanning for function signatures), affecting functions that fetch colors.
+
+In this branch, the plugin will try to change hair colors in all games. Optionally, skin colors too if you uncomment the patches in ffl_patches.h.
+
+Screenshots: Wii U Menu, New SUPER MARIO BROS. U, Super Smash Bros. for Wii U, Super Mario Maker, Mario Kart 8
+
+<img width="300" src="images/red-colors-wiiumenu.jpg">
+<img width="300" src="images/red-colors-nsmbu.jpg">
+<img width="300" src="images/red-colors-ssb4.jpg">
+<img width="300" src="images/red-colors-mariomaker.jpg">
+<img width="300" src="images/red-colors-mk8.jpg">
+
 ## Installation
 
 (`[ENVIRONMENT]` is a placeholder for the actual environment name.)
