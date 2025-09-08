@@ -10,11 +10,7 @@ In this branch, the plugin will try to change hair colors in all games. Optional
 
 Screenshots: Wii U Menu, New SUPER MARIO BROS. U, Super Smash Bros. for Wii U, Super Mario Maker, Mario Kart 8
 
-<img width="300" src="images/red-colors-wiiumenu.jpg">
-<img width="300" src="images/red-colors-nsmbu.jpg">
-<img width="300" src="images/red-colors-ssb4.jpg">
-<img width="300" src="images/red-colors-mariomaker.jpg">
-<img width="300" src="images/red-colors-mk8.jpg">
+<img width="350" src="images/red-colors-wiiumenu.jpg"> <img width="350" src="images/red-colors-nsmbu.jpg"> <img width="350" src="images/red-colors-ssb4.jpg"> <img width="350" src="images/red-colors-mariomaker.jpg"> <img width="350" src="images/red-colors-mk8.jpg">
 
 ## Installation
 
